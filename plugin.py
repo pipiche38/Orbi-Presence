@@ -22,10 +22,15 @@
         <param field="Address" label="ip" width="150px" required="true" default="10.0.0.1"/>
         <param field="Username" label="Username" width="150px" required="true" />
         <param field="Password" label="Username" width="150px" required="true" password="true"/>
-        <param field="Mode6" label="Debug" width="75px">
+        <param field="Mode6" label="Verbors and Debuging" width="150px">
             <options>
-                <option label="True" value="Debug"/>
-                <option label="False" value="Normal"  default="true" />
+                        <option label="None" value="0"  default="true"/>
+                        <option label="Verbose" value="2"/>
+                        <option label="Domoticz Framework - Basic" value="62"/>
+                        <option label="Domoticz Framework - Basic+Messages" value="126"/>
+                        <option label="Domoticz Framework - Connections Only" value="16"/>
+                        <option label="Domoticz Framework - Connections+Queue" value="144"/>
+                        <option label="Domoticz Framework - All" value="-1"/>
             </options>
         </param>
     </params>
@@ -52,9 +57,8 @@ class BasePlugin:
     def onStart(self):
         Domoticz.Log("onStart called")
         Domoticz.Heartbeat(60)
-        if Parameters["Mode6"] == 'True':
-            Domoticz.Debug('True')
-        Domoticz.Heartbeat(60)
+        Domoticz.Log('Mode6: %s' %Parameters["Mode6"])
+        Domoticz.Debugging(int(Parameters["Mode6"]))
         self.username = Parameters["Username"]
         self.password = Parameters["Password"]
         list_macs = (Parameters["Mode4"].strip()).split(',')
@@ -66,33 +70,67 @@ class BasePlugin:
         for iter in Parameters["Mode4"].split(','):
             mac = format_mac(iter)
 
-            Domoticz.Log('Mac: %s' %mac)
+            Domoticz.Status('- watching mac: %s' %mac)
             if mac not in list_device_mac:
-                Domoticz.Log('Create Widget for %s' %mac)
+                Domoticz.Debug('Create Widget for %s' %mac)
                 myDev = Domoticz.Device(DeviceID=mac, Name=mac+" Presence", Unit=len(Devices)+1, Type=244)
                 myDev.Create()
             self.macs.append(iter.strip(' '))
 
     def onStop(self):
-        Domoticz.Log("onStop called")
+        Domoticz.Debug("onStop called")
 
     def onConnect(self, Connection, Status, Description):
-        Domoticz.Log("onConnect called")
+        Domoticz.Debug("onConnect called")
 
     def onDisconnect(self, Connection):
-        Domoticz.Log("onDisconnect called")
+        Domoticz.Debug("onDisconnect called")
 
     def onHeartbeat(self):
-        Domoticz.Log("onHeartbeat called")
+        Domoticz.Debug("onHeartbeat called")
         url = 'http://' +self.ip + "/DEV_device_info.htm"
 
+        Domoticz.Debug("url to check : %s" %url)
         try:
             r = requests.get(url, auth=HTTPBasicAuth(self.username, self.password))
-            lines = r.text.split('\n')
-            device = lines[1].split('=')
+            r.raise_for_status()
+        except requests.exceptions.Timeout:
+            Domoticz.Log("Timeout on requests(%s)" %url)
+            Domoticz.Heartbeat(10)
+            return
+        except requests.exceptions.HTTPError as err:
+            Domoticz.Log("Error on requests(%s): %s" %(url, err))
+            Domoticz.Heartbeat(10)
+            return
+
+        if len(r.text) < 200:
+            Domoticz.Log("response seems too short: %s - %s" %(url, r.text))
+            Domoticz.Heartbeat(10)
+            return
+
+        lines = r.text.split('\n')
+        Domoticz.Debug("lines: %s" %lines)
+
+        if len(lines) < 2:
+            Domoticz.Log("Unexpected value (too short)) for lines: %s" %lines)
+            Domoticz.Heartbeat(10)
+            return
+
+        device = lines[1].split('=')
+        if len(device) < 2:
+            Domoticz.Log("Unexpected value (too short)) for device: %s" %device)
+            Domoticz.Heartbeat(10)
+            return
+
+        Domoticz.Debug("lines: %s" %lines)
+        Domoticz.Debug("device: %s" %device)
+        try:
             json_orbi = json.loads(device[1])
         except:
+            Domoticz.Debug("looks like something went wrong with json.loads(%): device: %s" %device[1])
+            Domoticz.Heartbeat(10)
             return
+
         cnt = 0
         dico_orbi = {}
         for iter in json_orbi:
@@ -104,14 +142,15 @@ class BasePlugin:
         for iter in dico_orbi:
             if dico_orbi[iter]['mac'] in self.macs:
                 mac_presence.append(format_mac(dico_orbi[iter]['mac']))
-        Domoticz.Log('Macs present are : %s' %mac_presence)
+        Domoticz.Debug('Macs present are : %s' %mac_presence)
         for iterDev in Devices:
             if Devices[iterDev].DeviceID in mac_presence:
-                Domoticz.Log('%s is at home' %Devices[iterDev].Name)
+                Domoticz.Debug('%s is at home' %Devices[iterDev].Name)
                 Devices[iterDev].Update(nValue=1, sValue='On')
             else:
-                Domoticz.Log('%s is away' %Devices[iterDev].Name)
+                Domoticz.Debug('%s is away' %Devices[iterDev].Name)
                 Devices[iterDev].Update(nValue=0, sValue='Away')
+        Domoticz.Heartbeat(60)
 
 global _plugin
 _plugin = BasePlugin()
