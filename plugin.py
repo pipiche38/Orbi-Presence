@@ -56,7 +56,7 @@ class BasePlugin:
 
     def onStart(self):
         Domoticz.Log("onStart called")
-        Domoticz.Heartbeat(60)
+        Domoticz.Heartbeat(30)
         Domoticz.Log('Mode6: %s' %Parameters["Mode6"])
         Domoticz.Debugging(int(Parameters["Mode6"]))
         self.username = Parameters["Username"]
@@ -88,7 +88,10 @@ class BasePlugin:
 
     def onHeartbeat(self):
         Domoticz.Debug("onHeartbeat called")
-        url = 'http://' +self.ip + "/DEV_device_info.htm"
+        if self.ip:
+            url = 'http://' +self.ip + "/DEV_device_info.htm"
+        else:
+            return
 
         Domoticz.Debug("url to check : %s" %url)
         try:
@@ -96,16 +99,13 @@ class BasePlugin:
             r.raise_for_status()
         except requests.exceptions.Timeout:
             Domoticz.Log("Timeout on requests(%s)" %url)
-            Domoticz.Heartbeat(10)
             return
         except requests.exceptions.HTTPError as err:
             Domoticz.Log("Error on requests(%s): %s" %(url, err))
-            Domoticz.Heartbeat(10)
             return
 
         if len(r.text) < 200:
             Domoticz.Log("response seems too short: %s - %s" %(url, r.text))
-            Domoticz.Heartbeat(10)
             return
 
         lines = r.text.split('\n')
@@ -113,13 +113,11 @@ class BasePlugin:
 
         if len(lines) < 2:
             Domoticz.Log("Unexpected value (too short)) for lines: %s" %lines)
-            Domoticz.Heartbeat(10)
             return
 
         device = lines[1].split('=')
         if len(device) < 2:
             Domoticz.Log("Unexpected value (too short)) for device: %s" %device)
-            Domoticz.Heartbeat(10)
             return
 
         Domoticz.Debug("lines: %s" %lines)
@@ -128,7 +126,6 @@ class BasePlugin:
             json_orbi = json.loads(device[1])
         except:
             Domoticz.Debug("looks like something went wrong with json.loads(%): device: %s" %device[1])
-            Domoticz.Heartbeat(10)
             return
 
         cnt = 0
@@ -150,7 +147,6 @@ class BasePlugin:
             else:
                 Domoticz.Debug('%s is away' %Devices[iterDev].Name)
                 Devices[iterDev].Update(nValue=0, sValue='Away')
-        Domoticz.Heartbeat(60)
 
 global _plugin
 _plugin = BasePlugin()
