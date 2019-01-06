@@ -3,7 +3,7 @@
 This little plugin allow to detect Mac Addresses presence by quering the Orbi Router
 
 ## Requirements 
-This Plugin use the requests module. ( http://docs.python-requests.org/en/master/ )
+This Plugin use the requests module. ( http://docs.python-requests.org/en/master/ ) on the current version the module is expected to be under the following folder /usr/lib/python3.6/site-packages'. If that is not your case in your current system, you'll have to update the plugin.py file accordingly
 
 
 ## Installation
