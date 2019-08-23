@@ -50,6 +50,8 @@ class BasePlugin:
     def __init__(self):
         self.username = None
         self.password = None
+        self.session = None
+
         self.macs = None
         self.ip = None
         return
@@ -67,15 +69,19 @@ class BasePlugin:
         list_device_mac = []
         for iterDev in Devices:
             list_device_mac.append(Devices[iterDev].DeviceID )
+        Domoticz.Debug("List of Devices: %s" %str(list_device_mac))
         for iter in Parameters["Mode4"].split(','):
             mac = format_mac(iter)
 
-            Domoticz.Status('- watching mac: %s' %mac)
+            Domoticz.Status('- watching MAC@: %s' %mac)
             if mac not in list_device_mac:
                 Domoticz.Debug('Create Widget for %s' %mac)
-                myDev = Domoticz.Device(DeviceID=mac, Name=mac+" Presence", Unit=len(Devices)+1, Type=244)
+                myDev = Domoticz.Device(DeviceID=mac, Name=mac+" Presence", Unit=FreeUnit(Devices), Type=244)
                 myDev.Create()
             self.macs.append(iter.strip(' '))
+        Domoticz.Status("Connect to Orbi")
+        self.session= requests.Session()
+        self.session.auth = ( self.username, self.password )
 
     def onStop(self):
         Domoticz.Debug("onStop called")
@@ -88,36 +94,38 @@ class BasePlugin:
 
     def onHeartbeat(self):
         Domoticz.Debug("onHeartbeat called")
-        if self.ip:
-            url = 'http://' +self.ip + "/DEV_device_info.htm"
-        else:
+        if not self.ip:
             return
+        url = 'http://' +self.ip + "/DEV_device_info.htm"
 
         Domoticz.Debug("url to check : %s" %url)
         try:
-            r = requests.get(url, auth=HTTPBasicAuth(self.username, self.password))
+            if self.session:
+                r = self.session.get( url )
+            else:
+                r = requests.get(url, auth=HTTPBasicAuth(self.username, self.password))
             r.raise_for_status()
         except requests.exceptions.Timeout:
-            Domoticz.Log("Timeout on requests(%s)" %url)
+            Domoticz.Error("Timeout on requests(%s)" %url)
             return
         except requests.exceptions.HTTPError as err:
-            Domoticz.Log("Error on requests(%s): %s" %(url, err))
+            Domoticz.Error("Error on requests(%s): %s" %(url, err))
             return
 
         if len(r.text) < 200:
-            Domoticz.Log("response seems too short: %s - %s" %(url, r.text))
+            Domoticz.Error("response seems too short: %s - %s" %(url, r.text))
             return
 
         lines = r.text.split('\n')
         Domoticz.Debug("lines: %s" %lines)
 
         if len(lines) < 2:
-            Domoticz.Log("Unexpected value (too short)) for lines: %s" %lines)
+            Domoticz.Error("Unexpected value (too short)) for lines: %s" %lines)
             return
 
         device = lines[1].split('=')
         if len(device) < 2:
-            Domoticz.Log("Unexpected value (too short)) for device: %s" %device)
+            Domoticz.Error("Unexpected value (too short)) for device: %s" %device)
             return
 
         Domoticz.Debug("lines: %s" %lines)
@@ -139,7 +147,7 @@ class BasePlugin:
         for iter in dico_orbi:
             if dico_orbi[iter]['mac'] in self.macs:
                 mac_presence.append(format_mac(dico_orbi[iter]['mac']))
-        Domoticz.Debug('Macs present are : %s' %mac_presence)
+        Domoticz.Debug('MAC@ present are : %s' %mac_presence)
         for iterDev in Devices:
             if Devices[iterDev].DeviceID in mac_presence:
                 Domoticz.Debug('%s is at home' %Devices[iterDev].Name)
@@ -194,3 +202,27 @@ def format_mac(mac: str) -> str:
     # convert mac in canonical form (eg. 00:80:41:ae:fd:7e)
     mac = ":".join(["%s" % (mac[i:i+2]) for i in range(0, 12, 2)])
     return mac
+
+
+def FreeUnit( Devices, nbunit_=1):
+    '''
+    FreeUnit
+    Look for a Free Unit number. If nbunit > 1 then we look for nbunit consecutive slots
+    '''
+    FreeUnit = ""
+    for x in range(1, 255):
+        if x not in Devices:
+            if nbunit_ == 1:
+                return x
+            nb = 1
+            for y in range(x+1, 255):
+                if y not in Devices:
+                    nb += 1
+                else:
+                    break
+                if nb == nbunit_: # We have found nbunit consecutive slots
+                    loggingWidget( self, "Debug", "FreeUnit - device " + str(x) + " available")
+                    return x
+
+    else:
+        return len(Devices) + 1
