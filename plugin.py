@@ -67,6 +67,17 @@ class BasePlugin:
         self.macs = []
         self.ip = Parameters["Address"]
         list_device_mac = []
+        homeicon = "idetect-home"
+        if homeicon not in Images: 
+            Domoticz.Image('ihome.zip').Create()
+            homeiconid=Images[homeicon].ID
+
+        #Create "Anyone home" device
+        if 1 not in Devices:
+            Domoticz.Debug('Create Widget Anyone @ Home' )
+            myDev = Domoticz.Device(DeviceID='#Anyone', Name="Anyone@Home", Unit=1, TypeName="Switch", Used=1, Image=homeiconid)
+            myDev.Create()
+
         for iterDev in Devices:
             list_device_mac.append(Devices[iterDev].DeviceID )
         Domoticz.Debug("List of Devices: %s" %str(list_device_mac))
@@ -148,13 +159,20 @@ class BasePlugin:
             if dico_orbi[iter]['mac'] in self.macs:
                 mac_presence.append(format_mac(dico_orbi[iter]['mac']))
         Domoticz.Debug('MAC@ present are : %s' %mac_presence)
+        oneOn = False
         for iterDev in Devices:
             if Devices[iterDev].DeviceID in mac_presence:
                 Domoticz.Debug('%s is at home' %Devices[iterDev].Name)
                 Devices[iterDev].Update(nValue=1, sValue='On')
+                Devices[1].Update(nValue=1, sValue='On')
+                oneOn = True
             else:
                 Domoticz.Debug('%s is away' %Devices[iterDev].Name)
                 Devices[iterDev].Update(nValue=0, sValue='Away')
+        if not oneOn:
+            Devices[1].Update(nValue=0, sValue='Off')
+
+
 
 global _plugin
 _plugin = BasePlugin()
