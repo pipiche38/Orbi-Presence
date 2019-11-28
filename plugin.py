@@ -3,7 +3,7 @@
 # Author: pipiche
 #
 """
-<plugin key="OrbiPresence" name="Presence on Orbi Router/AP" author="pipiche38" version="0.0.3" wikilink="http://www.domoticz.com/wiki/plugins/plugin.html" externallink="https://www.google.com/">
+<plugin key="OrbiPresence" name="Presence on Orbi Router/AP" author="pipiche38" version="0.0.4" wikilink="http://www.domoticz.com/wiki/plugins/plugin.html" externallink="https://www.google.com/">
     <description>
         <h2>Presence on Orbi Router/AP</h2><br/>
         The plugin will check the presence or not of the entered Mac address, by checking against the Orbi Router list of Devices.
