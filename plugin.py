@@ -68,7 +68,7 @@ class BasePlugin:
         self.ip = Parameters["Address"]
         list_device_mac = []
         homeicon = "idetect-home"
-        if homeicon not in Images: 
+        if homeicon in Images: 
             Domoticz.Image('ihome.zip').Create()
             homeiconid=Images[homeicon].ID
 
