@@ -69,9 +69,20 @@ class BasePlugin:
         list_device_mac = []
         homeicon = "idetect-home"
         homeiconid =  None
-        if homeicon not in Images: 
+        Domoticz.Log("--> %s" %str(Images))
+        if homeicon in Images: 
+            homeiconid=Images[homeicon].ID
+        else:
+            Domoticz.Log("Uploading Orbi-Presence Icons")
             Domoticz.Image('ihome.zip').Create()
-        homeiconid=Images[homeicon].ID
+            homeiconid=Images[homeicon].ID
+
+        Domoticz.Log("Images: %s" %str(Images))
+        for img in Images:
+            Domoticz.Log("Images: %s ==> Id: %s, Name: %s " %(img, Images[ img ].ID, Images[ img ].Name))
+
+        Domoticz.Log("--> homeiconid: %s" %homeiconid)
+
 
         #Create "Anyone home" device
         if 1 not in Devices:
