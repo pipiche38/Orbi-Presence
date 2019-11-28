@@ -3,7 +3,7 @@
 # Author: pipiche
 #
 """
-<plugin key="OrbiPresence" name="Presence on Orbi Router/AP" author="pipiche38" version="0.0.2" wikilink="http://www.domoticz.com/wiki/plugins/plugin.html" externallink="https://www.google.com/">
+<plugin key="OrbiPresence" name="Presence on Orbi Router/AP" author="pipiche38" version="0.0.3" wikilink="http://www.domoticz.com/wiki/plugins/plugin.html" externallink="https://www.google.com/">
     <description>
         <h2>Presence on Orbi Router/AP</h2><br/>
         The plugin will check the presence or not of the entered Mac address, by checking against the Orbi Router list of Devices.
@@ -158,19 +158,30 @@ class BasePlugin:
         for iter in dico_orbi:
             if dico_orbi[iter]['mac'] in self.macs:
                 mac_presence.append(format_mac(dico_orbi[iter]['mac']))
-        Domoticz.Debug('MAC@ present are : %s' %mac_presence)
+        Domoticz.Log('MAC@ present are : %s' %mac_presence)
         oneOn = False
         for iterDev in Devices:
+            if iterDev == 1: continue
             if Devices[iterDev].DeviceID in mac_presence:
-                Domoticz.Debug('%s is at home' %Devices[iterDev].Name)
-                Devices[iterDev].Update(nValue=1, sValue='On')
-                Devices[1].Update(nValue=1, sValue='On')
                 oneOn = True
+                Domoticz.Log('%s is at home' %Devices[iterDev].Name)
+                if Devices[iterDev].sValue != 'On':
+                    Devices[iterDev].Update(nValue=1, sValue='On')
             else:
-                Domoticz.Debug('%s is away' %Devices[iterDev].Name)
-                Devices[iterDev].Update(nValue=0, sValue='Away')
-        if not oneOn:
-            Devices[1].Update(nValue=0, sValue='Off')
+                Domoticz.Log('%s is away' %Devices[iterDev].Name)
+                if Devices[iterDev].sValue != 'Off':
+                    Devices[iterDev].Update(nValue=0, sValue='Off')
+
+        Domoticz.Log("@Home: %s %s, oneOn: %s" %(Devices[1].nValue, Devices[1].sValue, oneOn))
+
+        if oneOn:
+            if Devices[1].sValue != 'On':
+                Domoticz.Log("Update Anyone@Home to On")
+                Devices[1].Update(nValue=1, sValue='On')
+        else:
+            if Devices[1].sValue != 'Off':
+                Domoticz.Log("Update Anyone@Home to Off")
+                Devices[1].Update(nValue=0, sValue='Off')
 
 
 
