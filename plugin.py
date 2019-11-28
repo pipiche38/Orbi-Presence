@@ -68,14 +68,18 @@ class BasePlugin:
         self.ip = Parameters["Address"]
         list_device_mac = []
         homeicon = "idetect-home"
-        if homeicon in Images: 
+        homeiconid =  None
+        if homeicon not in Images: 
             Domoticz.Image('ihome.zip').Create()
-            homeiconid=Images[homeicon].ID
+        homeiconid=Images[homeicon].ID
 
         #Create "Anyone home" device
         if 1 not in Devices:
             Domoticz.Debug('Create Widget Anyone @ Home' )
-            myDev = Domoticz.Device(DeviceID='#Anyone', Name="Anyone@Home", Unit=1, TypeName="Switch", Used=1, Image=homeiconid)
+            if homeiconid:
+                myDev = Domoticz.Device(DeviceID='#Anyone', Name="Anyone@Home", Unit=1, TypeName="Switch", Used=1, Image=homeiconid)
+            else:
+                myDev = Domoticz.Device(DeviceID='#Anyone', Name="Anyone@Home", Unit=1, TypeName="Switch", Used=1)
             myDev.Create()
 
         for iterDev in Devices:
