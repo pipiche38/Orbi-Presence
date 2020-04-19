@@ -131,12 +131,25 @@ class BasePlugin:
             else:
                 r = requests.get(url, auth=HTTPBasicAuth(self.username, self.password))
             r.raise_for_status()
-        except requests.exceptions.Timeout:
-            Domoticz.Error("Timeout on requests(%s)" %url)
+            
+        except requests.exceptions.TooManyRedirects:
+            Domoticz.Errors("URL was bad. %s" %url)
             return
+        
+        except requests.exceptions.ConnectionError as errc:
+            Domoticz.Log("Error Connecting: %s - %s" %(url, errc))
+            return
+        
         except requests.exceptions.HTTPError as err:
             Domoticz.Error("Error on requests(%s): %s" %(url, err))
             return
+        
+        except requests.exceptions.Timeout:
+            Domoticz.Error("Timeout on requests(%s)" %url)
+            return
+        
+        except requests.exceptions.RequestException as e:
+            Domoticz.Log("Catastophic error. %url - %s" %(url, e))
 
         if len(r.text) < 200:
             Domoticz.Error("response seems too short: %s - %s" %(url, r.text))
