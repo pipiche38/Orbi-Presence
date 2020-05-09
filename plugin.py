@@ -70,13 +70,10 @@ class BasePlugin:
         homeicon = "idetect-home"
         homeiconid =  None
         Domoticz.Log("--> %s" %str(Images))
-        if homeicon in Images: 
-            homeiconid=Images[homeicon].ID
-        else:
+        if homeicon not in Images:
             Domoticz.Log("Uploading Orbi-Presence Icons")
             Domoticz.Image('ihome.zip').Create()
-            homeiconid=Images[homeicon].ID
-
+        homeiconid=Images[homeicon].ID
         Domoticz.Log("Images: %s" %str(Images))
         for img in Images:
             Domoticz.Log("Images: %s ==> Id: %s, Name: %s " %(img, Images[ img ].ID, Images[ img ].Name))
